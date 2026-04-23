@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데이트 앨범 편집 💕</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, sans-serif;
+    background: linear-gradient(180deg, #FFE8EC 0%, #FFD4E5 25%, #E8DCFF 55%, #D4E5FF 80%, #C8DCF5 100%);
+    padding: 24px 16px 60px;
+    color: #4A3F5C;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block; margin-bottom: 12px;
+    padding: 8px 14px; background: rgba(255, 255, 255, 0.85);
+    border-radius: 14px; font-size: 12px; font-weight: 700;
+    color: #8B7BA8; text-decoration: none;
+    box-shadow: 0 4px 12px rgba(200, 180, 220, 0.2);
+  }
+
+  .panel {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
+    padding: 22px 20px;
+    box-shadow: 0 12px 40px rgba(200, 180, 220, 0.3);
+    margin-bottom: 16px;
+  }
+
+  h1 { font-size: 22px; color: #E87A9E; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .sub { font-size: 12px; color: #8B7BA8; font-weight: 600; margin-bottom: 16px; }
+
+  label { display: block; font-size: 12px; font-weight: 800; color: #6A5A82; margin-bottom: 4px; margin-top: 12px; }
+  label .hint { font-weight: 500; color: #A89BB9; margin-left: 6px; font-size: 11px; }
+
+  input[type=text], input[type=date], textarea, select {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid #F0E0EA; border-radius: 10px;
+    font-size: 13px; color: #4A3F5C; font-family: inherit;
+    background: #FFFBFC; transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: #E87A9E; }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+
+  button {
+    padding: 10px 16px; border: none; border-radius: 12px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .btn-primary { background: #E87A9E; color: white; box-shadow: 0 4px 12px rgba(232, 122, 158, 0.3); }
+  .btn-primary:hover { background: #D96B8A; }
+  .btn-primary:disabled { background: #DFC8D0; cursor: not-allowed; box-shadow: none; }
+  .btn-secondary { background: #F0E0EA; color: #8B5A7C; }
+  .btn-danger { background: #FFE0E0; color: #D96B6B; }
+  .btn-sm { padding: 6px 12px; font-size: 11.5px; border-radius: 10px; }
+
+  .token-status {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; background: #F0FAF3; border-radius: 10px;
+    font-size: 12px; color: #5A9670; font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .token-status.bad { background: #FFF0F0; color: #D96B6B; }
+
+  .date-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .date-item {
+    padding: 12px 14px; background: #FBF5FA; border-radius: 12px;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    border: 2px solid transparent; transition: all 0.15s;
+  }
+  .date-item:hover { background: #F5EDFA; }
+  .date-item.selected { border-color: #E87A9E; background: #FFF4F7; }
+  .date-item .emoji { font-size: 22px; flex-shrink: 0; }
+  .date-item .info { flex: 1; min-width: 0; }
+  .date-item .t { font-size: 13px; font-weight: 800; color: #4A3F5C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .date-item .d { font-size: 11px; color: #9B88B8; font-weight: 700; }
+  .date-item .badges { display: flex; gap: 4px; flex-shrink: 0; }
+  .date-item .badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #FFE0E8; color: #D96B8A; font-weight: 700; }
+
+  .photo-drop {
+    margin-top: 8px; padding: 20px; border: 2.5px dashed #E0C8E8;
+    border-radius: 14px; text-align: center; color: #9670BA;
+    font-size: 13px; font-weight: 700; cursor: pointer; background: rgba(255,255,255,0.4);
+    transition: all 0.15s;
+  }
+  .photo-drop:hover, .photo-drop.drag { background: rgba(255,255,255,0.8); border-color: #B88BC8; }
+  .photo-drop .small { font-size: 11px; color: #B8A8CC; margin-top: 4px; font-weight: 500; }
+
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .photo-cell { position: relative; aspect-ratio: 1/1; border-radius: 10px; overflow: hidden; }
+  .photo-cell img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-cell .rm {
+    position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+    border-radius: 50%; background: rgba(0,0,0,0.65); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; cursor: pointer; line-height: 1;
+  }
+
+  .list-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .list-row input { flex: 1; }
+  .list-row .rm-row { flex: 0 0 auto; padding: 8px 10px; border-radius: 8px; background: #FFE0E0; color: #D96B6B; cursor: pointer; font-size: 11px; font-weight: 700; border: none; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    padding: 10px 18px; background: rgba(74, 63, 92, 0.95); color: white;
+    border-radius: 20px; font-size: 13px; font-weight: 700;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 1; }
+  .toast.err { background: #D96B6B; }
+
+  .hidden { display: none !important; }
+
+  .advanced-toggle {
+    margin-top: 14px; padding: 10px; text-align: center;
+    background: #F8EEFA; border-radius: 10px; font-size: 12px;
+    font-weight: 700; color: #9670BA; cursor: pointer;
+  }
+  .advanced-body { margin-top: 10px; }
+
+  .guide {
+    background: #FFF8E8; border-left: 4px solid #FFC857;
+    padding: 12px 14px; border-radius: 10px;
+    font-size: 12px; color: #8B6B2B; line-height: 1.6;
+  }
+  .guide a { color: #B8860B; font-weight: 800; }
+  .guide code { background: #FFE8A3; padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="/" class="back-link">‹ 앨범으로 돌아가기</a>
+
+  <!-- ============ TOKEN PANEL ============ -->
+  <div class="panel" id="token-panel">
+    <h1>💕 편집 페이지</h1>
+    <div class="sub">사진/후기 추가하고 데이트 수정하려면 GitHub 토큰이 필요해요</div>
+
+    <div id="token-status-wrap"></div>
+
+    <div id="token-input-wrap">
+      <label>GitHub Personal Access Token</label>
+      <input type="text" id="token-input" placeholder="ghp_... 또는 github_pat_..." autocomplete="off">
+      <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <button class="btn-primary" onclick="saveToken()">저장 (이 브라우저에만)</button>
+        <button class="btn-secondary btn-sm" onclick="showHelp()">토큰 만드는 법 ❓</button>
+      </div>
+
+      <div class="guide hidden" id="help-box" style="margin-top: 12px;">
+        <b>토큰 만드는 법 (한 번만):</b><br>
+        1. <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">이 링크</a> 클릭<br>
+        2. <b>Token name</b>: "Date Album Editor" (아무거나)<br>
+        3. <b>Expiration</b>: 원하는 기간 (1년 등)<br>
+        4. <b>Repository access</b> → <code>Only select repositories</code> → <code>aeg6648/date_album</code><br>
+        5. <b>Permissions</b> → <b>Repository permissions</b> → <code>Contents</code>를 <b>Read and write</b>로<br>
+        6. <b>Generate token</b> → 나온 토큰 복사해서 위에 붙여넣기
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DATE LIST ============ -->
+  <div class="panel hidden" id="list-panel">
+    <h1>📔 데이트 목록</h1>
+    <div class="sub">수정할 데이트를 클릭하거나, 새 데이트를 추가하세요</div>
+
+    <button class="btn-primary" style="width: 100%;" onclick="newDate()">＋ 새 데이트 추가</button>
+
+    <div class="date-list" id="date-list"></div>
+  </div>
+
+  <!-- ============ EDITOR ============ -->
+  <div class="panel hidden" id="editor-panel">
+    <h1 id="editor-title">✏️ 편집</h1>
+    <div class="sub">저장 버튼 누르면 GitHub에 자동 커밋되고 사이트에 반영돼요 (약 30초)</div>
+
+    <label>ID <span class="hint">고유값, 수정 불가 (예: 2026-04-26-hangang)</span></label>
+    <input type="text" id="f-id">
+
+    <div class="row">
+      <div>
+        <label>날짜</label>
+        <input type="date" id="f-date">
+      </div>
+      <div>
+        <label>요일</label>
+        <input type="text" id="f-weekday" placeholder="일요일">
+      </div>
+    </div>
+
+    <label>제목</label>
+    <input type="text" id="f-title" placeholder="우리의 한강 데이트">
+
+    <div class="row">
+      <div>
+        <label>이모지</label>
+        <input type="text" id="f-emoji" placeholder="💕">
+      </div>
+      <div>
+        <label>테마 컬러</label>
+        <select id="f-theme">
+          <option value="pink">🌸 Pink</option>
+          <option value="blue">🌊 Blue</option>
+          <option value="purple">💜 Purple</option>
+          <option value="yellow">💛 Yellow</option>
+          <option value="green">🌿 Green</option>
+        </select>
+      </div>
+    </div>
+
+    <label>부제 <span class="hint">선택</span></label>
+    <input type="text" id="f-subtitle" placeholder="한강버스 & 빕스">
+
+    <label>경로 <span class="hint">선택</span></label>
+    <input type="text" id="f-route" placeholder="서울대입구 → 여의도 → 반포">
+
+    <label>💌 후기</label>
+    <textarea id="f-review" rows="5" placeholder="데이트 다녀온 소감을 자유롭게 써주세요 💕"></textarea>
+
+    <label>📷 사진 <span class="hint" id="photo-count">0장</span></label>
+    <div class="photo-drop" id="photo-drop">
+      📷 사진 파일을 드래그하거나 클릭해서 업로드
+      <div class="small">여러 장 한 번에 OK (JPG, PNG, HEIC 등)</div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" multiple class="hidden">
+    <div class="photo-grid" id="photo-grid"></div>
+
+    <label>🏷️ 태그 <span class="hint">카드에 표시되는 작은 라벨</span></label>
+    <div id="tag-list"></div>
+    <button class="btn-secondary btn-sm" onclick="addTag()" type="button">＋ 태그 추가</button>
+
+    <label>📌 체크리스트 <span class="hint">꼭 챙길 것 등</span></label>
+    <div id="checklist-list"></div>
+    <button class="btn-secondary btn-sm" onclick="addChecklist()" type="button">＋ 항목 추가</button>
+
+    <div class="advanced-toggle" onclick="toggleAdvanced()">🔧 고급 (타임라인 · 푸터 · JSON 직접 편집) ▾</div>
+    <div class="advanced-body hidden" id="advanced-body">
+      <div class="guide" style="margin-bottom: 12px;">
+        타임라인(섹션/시간별 활동)은 구조가 복잡해서 폼으로 편집하기 어려워요.<br>
+        새 타임라인이 필요하면 <b>Claude한테 부탁</b>하거나, 아래 JSON을 직접 수정하세요.
+      </div>
+
+      <label>푸터 - 한 줄 소감</label>
+      <input type="text" id="f-footerHeart">
+      <label>푸터 - 부제</label>
+      <input type="text" id="f-footerSub">
+      <label>푸터 - 작은 글씨</label>
+      <input type="text" id="f-footerSmall">
+
+      <label>Sections (타임라인 JSON)</label>
+      <textarea id="f-sections" rows="10" style="font-family: monospace; font-size: 11px;"></textarea>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 22px;">
+      <button class="btn-primary" id="btn-save" onclick="saveDate()" style="flex: 1;">💾 저장하기</button>
+      <button class="btn-danger" onclick="deleteDate()">🗑️ 삭제</button>
+      <button class="btn-secondary" onclick="cancelEdit()">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ================================
+// GitHub API 연동 (aeg6648/date_album)
+// ================================
+const REPO_OWNER = 'aeg6648';
+const REPO_NAME = 'date_album';
+const BRANCH = 'main';
+const DATA_PATH = 'data/dates.json';
+
+let TOKEN = localStorage.getItem('gh_token') || '';
+let DATES = [];
+let DATES_SHA = null;
+let EDITING_INDEX = -1;     // -1 = new
+let EDITING_COPY = null;    // working copy of current date being edited
+
+function toast(msg, isErr) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+function ghHeaders() {
+  return {
+    'Authorization': 'Bearer ' + TOKEN,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+}
+
+async function ghGet(path) {
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`;
+  const resp = await fetch(url, { headers: ghHeaders() });
+  if (!resp.ok) {
+    if (resp.status === 404) return null;
+    throw new Error(`GitHub GET ${resp.status}: ${await resp.text()}`);
+  }
+  return resp.json();
+}
+
+async function ghPut(path, { content, message, sha }) {
+  const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`;
+  const body = { message, content, branch: BRANCH };
+  if (sha) body.sha = sha;
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    throw new Error(`GitHub PUT ${resp.status}: ${await resp.text()}`);
+  }
+  return resp.json();
+}
+
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function base64ToUtf8(b64) {
+  return decodeURIComponent(escape(atob(b64)));
+}
+
+// ================================
+// TOKEN
+// ================================
+function showHelp() {
+  document.getElementById('help-box').classList.toggle('hidden');
+}
+
+async function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) return toast('토큰을 입력해주세요', true);
+  TOKEN = t;
+  // verify by fetching repo
+  try {
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
+    const resp = await fetch(url, { headers: ghHeaders() });
+    if (!resp.ok) throw new Error(`인증 실패 (${resp.status}). 토큰 확인해주세요.`);
+    localStorage.setItem('gh_token', t);
+    toast('토큰 저장 완료! 💕');
+    initApp();
+  } catch (err) {
+    toast(err.message, true);
+    TOKEN = '';
+  }
+}
+
+function clearToken() {
+  localStorage.removeItem('gh_token');
+  TOKEN = '';
+  location.reload();
+}
+
+// ================================
+// APP INIT
+// ================================
+async function initApp() {
+  if (!TOKEN) {
+    document.getElementById('token-panel').classList.remove('hidden');
+    return;
+  }
+  // token exists — verify & show app
+  document.getElementById('token-input-wrap').classList.add('hidden');
+  document.getElementById('token-status-wrap').innerHTML = `
+    <div class="token-status">
+      ✓ 로그인됨
+      <button class="btn-secondary btn-sm" style="margin-left: auto;" onclick="clearToken()">로그아웃</button>
+    </div>
+  `;
+  await loadDates();
+}
+
+async function loadDates() {
+  try {
+    const file = await ghGet(DATA_PATH);
+    if (!file) {
+      DATES = []; DATES_SHA = null;
+    } else {
+      DATES = JSON.parse(base64ToUtf8(file.content));
+      DATES_SHA = file.sha;
+    }
+    renderList();
+    document.getElementById('list-panel').classList.remove('hidden');
+  } catch (err) {
+    toast('데이트 목록 불러오기 실패: ' + err.message, true);
+  }
+}
+
+function renderList() {
+  const el = document.getElementById('date-list');
+  const sorted = [...DATES].map((d, i) => ({...d, _i: i}))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (sorted.length === 0) {
+    el.innerHTML = '<div style="text-align:center; color:#B8A8CC; padding:20px; font-size:12px;">아직 데이트가 없어요 💕</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(d => {
+    const badges = [];
+    if (d.review && d.review.trim()) badges.push('<span class="badge">📝 후기</span>');
+    if (d.photos && d.photos.length) badges.push(`<span class="badge">📷 ${d.photos.length}</span>`);
+    return `
+      <div class="date-item" onclick="editDate(${d._i})">
+        <div class="emoji">${d.emoji || '💕'}</div>
+        <div class="info">
+          <div class="t">${d.title || '(제목 없음)'}</div>
+          <div class="d">${d.date || ''} · ${d.weekday || ''}</div>
+        </div>
+        <div class="badges">${badges.join('')}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ================================
+// EDITOR
+// ================================
+function newDate() {
+  EDITING_INDEX = -1;
+  const today = new Date().toISOString().slice(0, 10);
+  EDITING_COPY = {
+    id: '',
+    date: today,
+    weekday: '',
+    title: '',
+    emoji: '💕',
+    subtitle: '',
+    route: '',
+    theme: 'pink',
+    tags: [],
+    sections: [],
+    checklist: [],
+    review: '',
+    photos: [],
+    footerHeart: '',
+    footerSub: '',
+    footerSmall: '',
+  };
+  showEditor();
+}
+
+function editDate(i) {
+  EDITING_INDEX = i;
+  EDITING_COPY = JSON.parse(JSON.stringify(DATES[i]));
+  showEditor();
+}
+
+function showEditor() {
+  document.getElementById('list-panel').classList.add('hidden');
+  document.getElementById('editor-panel').classList.remove('hidden');
+  document.getElementById('editor-title').textContent =
+    EDITING_INDEX === -1 ? '✨ 새 데이트' : '✏️ ' + (EDITING_COPY.title || '편집');
+
+  const d = EDITING_COPY;
+  document.getElementById('f-id').value = d.id || '';
+  document.getElementById('f-date').value = d.date || '';
+  document.getElementById('f-weekday').value = d.weekday || '';
+  document.getElementById('f-title').value = d.title || '';
+  document.getElementById('f-emoji').value = d.emoji || '';
+  document.getElementById('f-subtitle').value = d.subtitle || '';
+  document.getElementById('f-route').value = d.route || '';
+  document.getElementById('f-theme').value = d.theme || 'pink';
+  document.getElementById('f-review').value = d.review || '';
+  document.getElementById('f-footerHeart').value = d.footerHeart || '';
+  document.getElementById('f-footerSub').value = d.footerSub || '';
+  document.getElementById('f-footerSmall').value = d.footerSmall || '';
+  document.getElementById('f-sections').value = JSON.stringify(d.sections || [], null, 2);
+
+  renderTags();
+  renderChecklist();
+  renderPhotos();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  if (!confirm('편집 취소하고 목록으로 돌아갈까요?')) return;
+  document.getElementById('editor-panel').classList.add('hidden');
+  document.getElementById('list-panel').classList.remove('hidden');
+  EDITING_INDEX = -1;
+  EDITING_COPY = null;
+}
+
+// ---- Tags ----
+function renderTags() {
+  const el = document.getElementById('tag-list');
+  el.innerHTML = (EDITING_COPY.tags || []).map((t, i) => `
+    <div class="list-row">
+      <input type="text" value="${escapeAttr(t.text || '')}" oninput="EDITING_COPY.tags[${i}].text=this.value" placeholder="태그 텍스트">
+      <select onchange="EDITING_COPY.tags[${i}].color=this.value" style="max-width: 100px;">
+        ${['pink','blue','purple','yellow','green'].map(c => `<option value="${c}" ${t.color===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <button class="rm-row" onclick="EDITING_COPY.tags.splice(${i},1); renderTags()">X</button>
+    </div>
+  `).join('');
+}
+function addTag() {
+  if (!EDITING_COPY.tags) EDITING_COPY.tags = [];
+  EDITING_COPY.tags.push({ text: '', color: 'pink' });
+  renderTags();
+}
+
+// ---- Checklist ----
+function renderChecklist() {
+  const el = document.getElementById('checklist-list');
+  el.innerHTML = (EDITING_COPY.checklist || []).map((c, i) => `
+    <div class="list-row">
+      <input type="text" value="${escapeAttr(c)}" oninput="EDITING_COPY.checklist[${i}]=this.value">
+      <button class="rm-row" onclick="EDITING_COPY.checklist.splice(${i},1); renderChecklist()">X</button>
+    </div>
+  `).join('');
+}
+function addChecklist() {
+  if (!EDITING_COPY.checklist) EDITING_COPY.checklist = [];
+  EDITING_COPY.checklist.push('');
+  renderChecklist();
+}
+
+// ---- Photos ----
+function renderPhotos() {
+  const photos = EDITING_COPY.photos || [];
+  document.getElementById('photo-count').textContent = photos.length + '장';
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = photos.map((p, i) => `
+    <div class="photo-cell">
+      <img src="${p}" loading="lazy">
+      <div class="rm" onclick="removePhoto(${i})">×</div>
+    </div>
+  `).join('');
+}
+
+function removePhoto(i) {
+  if (!confirm('이 사진을 삭제할까요?')) return;
+  EDITING_COPY.photos.splice(i, 1);
+  renderPhotos();
+}
+
+async function uploadPhoto(file) {
+  const id = EDITING_COPY.id || ('date-' + Date.now());
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const ts = Date.now();
+  const path = `photos/${id}/${ts}_${safeName}`;
+
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      resolve(result.slice(result.indexOf(',') + 1));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  await ghPut(path, { content: base64, message: `사진 업로드: ${path}` });
+  return '/' + path;
+}
+
+async function handleFiles(files) {
+  if (!files || !files.length) return;
+  if (!EDITING_COPY.id) {
+    alert('먼저 ID를 입력해주세요 (예: 2026-04-26-hangang)');
+    document.getElementById('f-id').focus();
+    return;
+  }
+  EDITING_COPY.id = document.getElementById('f-id').value.trim();
+  const drop = document.getElementById('photo-drop');
+  drop.innerHTML = `업로드 중… (0/${files.length})`;
+  let done = 0;
+  for (const file of files) {
+    try {
+      const url = await uploadPhoto(file);
+      if (!EDITING_COPY.photos) EDITING_COPY.photos = [];
+      EDITING_COPY.photos.push(url);
+      done++;
+      drop.innerHTML = `업로드 중… (${done}/${files.length})`;
+      renderPhotos();
+    } catch (err) {
+      toast('업로드 실패: ' + err.message, true);
+    }
+  }
+  drop.innerHTML = '📷 사진 파일을 드래그하거나 클릭해서 업로드<div class="small">여러 장 한 번에 OK (JPG, PNG, HEIC 등)</div>';
+  toast(`${done}장 업로드 완료 💕`);
+}
+
+// photo drop setup
+(function setupDrop() {
+  const drop = document.getElementById('photo-drop');
+  const input = document.getElementById('photo-input');
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', (e) => handleFiles(e.target.files));
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.add('drag');
+  }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.remove('drag');
+  }));
+  drop.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+})();
+
+function toggleAdvanced() {
+  document.getElementById('advanced-body').classList.toggle('hidden');
+}
+
+// ---- SAVE ----
+async function saveDate() {
+  // collect form
+  const d = EDITING_COPY;
+  d.id = document.getElementById('f-id').value.trim();
+  d.date = document.getElementById('f-date').value;
+  d.weekday = document.getElementById('f-weekday').value.trim();
+  d.title = document.getElementById('f-title').value.trim();
+  d.emoji = document.getElementById('f-emoji').value.trim();
+  d.subtitle = document.getElementById('f-subtitle').value.trim();
+  d.route = document.getElementById('f-route').value.trim();
+  d.theme = document.getElementById('f-theme').value;
+  d.review = document.getElementById('f-review').value;
+  d.footerHeart = document.getElementById('f-footerHeart').value.trim();
+  d.footerSub = document.getElementById('f-footerSub').value.trim();
+  d.footerSmall = document.getElementById('f-footerSmall').value.trim();
+
+  try {
+    const secText = document.getElementById('f-sections').value.trim();
+    d.sections = secText ? JSON.parse(secText) : [];
+  } catch (e) {
+    toast('Sections JSON 문법 오류: ' + e.message, true);
+    return;
+  }
+
+  // clean empty tags/checklist
+  d.tags = (d.tags || []).filter(t => t.text && t.text.trim());
+  d.checklist = (d.checklist || []).filter(c => c && c.trim());
+
+  if (!d.id || !d.date || !d.title) {
+    toast('ID, 날짜, 제목은 필수입니다', true);
+    return;
+  }
+
+  // duplicate id check for new dates
+  if (EDITING_INDEX === -1) {
+    if (DATES.some(x => x.id === d.id)) {
+      toast('같은 ID가 이미 있어요. 다른 ID를 쓰세요.', true);
+      return;
+    }
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = '저장 중…';
+
+  try {
+    let next;
+    if (EDITING_INDEX === -1) {
+      next = [d, ...DATES];
+    } else {
+      next = [...DATES];
+      next[EDITING_INDEX] = d;
+    }
+
+    const content = JSON.stringify(next, null, 2) + '\n';
+    const res = await ghPut(DATA_PATH, {
+      content: utf8ToBase64(content),
+      message: EDITING_INDEX === -1 ? `데이트 추가: ${d.title}` : `데이트 수정: ${d.title}`,
+      sha: DATES_SHA,
+    });
+    DATES = next;
+    DATES_SHA = res.content.sha;
+    toast('저장 완료! 💕 (Vercel 재배포 ~30초)');
+    document.getElementById('editor-panel').classList.add('hidden');
+    document.getElementById('list-panel').classList.remove('hidden');
+    renderList();
+  } catch (err) {
+    toast('저장 실패: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 저장하기';
+  }
+}
+
+async function deleteDate() {
+  if (EDITING_INDEX === -1) return cancelEdit();
+  if (!confirm(`"${EDITING_COPY.title}"을(를) 정말 삭제할까요?`)) return;
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+
+  try {
+    const next = DATES.filter((_, i) => i !== EDITING_INDEX);
+    const content = JSON.stringify(next, null, 2) + '\n';
+    const res = await ghPut(DATA_PATH, {
+      content: utf8ToBase64(content),
+      message: `데이트 삭제: ${EDITING_COPY.title}`,
+      sha: DATES_SHA,
+    });
+    DATES = next;
+    DATES_SHA = res.content.sha;
+    toast('삭제 완료');
+    document.getElementById('editor-panel').classList.add('hidden');
+    document.getElementById('list-panel').classList.remove('hidden');
+    renderList();
+  } catch (err) {
+    toast('삭제 실패: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function escapeAttr(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+initApp();
+</script>
+</body>
+</html>

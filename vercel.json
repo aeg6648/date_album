@@ -17,6 +17,12 @@
     }
   ],
   "redirects": [
-    { "source": "/dates/2026-04-26_hangang", "destination": "/date?id=2026-04-26-hangang", "permanent": false }
+    { "source": "/dates/2026-04-26_hangang", "destination": "/date?id=2026-04-26-hangang", "permanent": false },
+    { "source": "/Edit", "destination": "/edit", "permanent": false },
+    { "source": "/EDIT", "destination": "/edit", "permanent": false },
+    { "source": "/Date", "destination": "/date", "permanent": false },
+    { "source": "/DATE", "destination": "/date", "permanent": false },
+    { "source": "/admin", "destination": "/edit", "permanent": false },
+    { "source": "/admin/", "destination": "/edit", "permanent": false }
   ]
 }

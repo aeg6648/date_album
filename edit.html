@@ -179,7 +179,8 @@
     <h1>📔 데이트 목록</h1>
     <div class="sub">수정할 데이트를 클릭하거나, 새 데이트를 추가하세요</div>
 
-    <button class="btn-claude" onclick="openClaudePanel()" style="width: 100%; margin-bottom: 8px;">🤖 Claude로 빠르게 추가 (자연어)</button>
+    <button class="btn-claude" onclick="openClaudePanel()" style="width: 100%; margin-bottom: 8px;">🤖 Claude로 빠르게 추가 (API 키 필요)</button>
+    <button class="btn-secondary" onclick="openPastePanel()" style="width: 100%; margin-bottom: 8px;">📋 양식 복붙으로 추가 (claude.ai 등)</button>
     <button class="btn-primary" style="width: 100%;" onclick="newDate()">＋ 빈 양식으로 추가</button>
 
     <div class="date-list" id="date-list"></div>
@@ -220,6 +221,31 @@
 
       <div id="claude-status" style="margin-top: 12px; font-size: 12px; color: #8B7BA8; font-weight: 600;"></div>
     </div>
+  </div>
+
+  <!-- ============ PASTE PANEL ============ -->
+  <div class="panel hidden" id="paste-panel">
+    <h1>📋 양식 복붙으로 추가</h1>
+    <div class="sub">claude.ai, ChatGPT 같은 데서 AI한테 양식 주고 답 받아 붙여넣으세요</div>
+
+    <label>① 양식 복사</label>
+    <div class="guide" style="margin-bottom: 8px;">
+      <b>사용법:</b><br>
+      1. 아래 <b>양식 복사</b> 클릭<br>
+      2. <a href="https://claude.ai/new" target="_blank">claude.ai</a>(또는 ChatGPT)에 붙여넣고 맨 아래에 데이트 설명 추가<br>
+      3. AI가 돌려준 JSON 전체를 복사해서 아래 ②에 붙여넣기
+    </div>
+    <button class="btn-claude" onclick="copyTemplate()" style="width: 100%;">📋 양식 클립보드에 복사</button>
+    <div id="copy-status" style="font-size: 11px; color: #5A9670; margin-top: 6px; font-weight: 600; min-height: 14px;"></div>
+
+    <label style="margin-top: 20px;">② AI가 준 결과 붙여넣기</label>
+    <textarea id="paste-input" rows="10" placeholder="AI가 돌려준 JSON을 여기에 붙여넣으세요.&#10;JSON 앞뒤에 설명 붙어있어도 OK, ```json``` 코드블럭도 자동 처리."></textarea>
+
+    <div style="display: flex; gap: 8px; margin-top: 12px;">
+      <button class="btn-primary" onclick="parseAndFill()" style="flex: 1;">✨ 분석해서 폼에 넣기</button>
+      <button class="btn-secondary" onclick="closePastePanel()">취소</button>
+    </div>
+    <div id="paste-status" style="margin-top: 10px; font-size: 12px; font-weight: 600;"></div>
   </div>
 
   <!-- ============ EDITOR ============ -->
@@ -897,6 +923,245 @@ const CLAUDE_TOOL = {
     }
   }
 };
+
+// ================================
+// 📋 COPY-PASTE TEMPLATE FLOW
+// ================================
+function buildTemplatePrompt() {
+  const today = new Date().toISOString().slice(0, 10);
+  return `아래 JSON 양식으로 데이트를 정리해줘. 규칙 지키고, 최종 출력은 JSON 하나만 (다른 설명 없이).
+
+=== 스키마 ===
+{
+  "id": "YYYY-MM-DD-영문키워드",   // 소문자-하이픈, 예: "2026-05-10-seongsu"
+  "date": "YYYY-MM-DD",
+  "weekday": "월요일~일요일 중 하나",
+  "title": "데이트 제목 (예: 우리의 한강 데이트)",
+  "emoji": "데이트를 대표하는 이모지 2개 (예: 🚢🌸)",
+  "subtitle": "부제 (선택, 예: 한강버스 & 빕스)",
+  "route": "경로 (예: 서울대입구 → 여의도 → 반포, 선택)",
+  "theme": "pink | blue | purple | yellow | green",
+  "tags": [
+    { "text": "태그명 (짧게)", "color": "pink|blue|purple|yellow|green" }
+  ],
+  "sections": [
+    {
+      "colorClass": "sec-1 | sec-2 | sec-3 | sec-4",  // 순서대로 돌아가며 사용
+      "label": "이모지 포함 섹션 제목 (예: '🍜 PART 1. 한강 점심')",
+      "entries": [
+        // [장소/활동]
+        {
+          "type": "item",
+          "time": "HH:MM",
+          "title": "이모지 포함 제목",
+          "desc": "설명, HTML <br> <b> 사용 가능",
+          "category": "food | boat | cafe | walk | \\"\\"",  // 빈 문자열이면 기본 카드
+          "highlight": false,  // 오늘의 메인 이벤트만 true
+          "tag": { "text": "선택 태그", "color": "pink" }  // 선택, 생략 가능
+        },
+        // [이동]
+        {
+          "type": "transport",
+          "mode": "subway-mode | boat-mode | walk-mode | car-mode",
+          "label": "🚇 지하철 2호선",
+          "duration": "약 30분"
+        }
+      ]
+    }
+  ],
+  "checklist": ["준비물1", "준비물2"],  // 계획이면 3~5개, 다녀온 후면 []
+  "review": "후기 (과거 데이트면 감상 정리, 미래면 \\"\\"로 빈 문자열)",
+  "footerHeart": "한 줄 요약 (예: 한강라면부터 빕스까지)",
+  "footerSub": "시적인 부제 (예: 우리만의 특별한 하루 ✨)",
+  "footerSmall": "총 소요시간 · 1인 예상 비용 (예: 총 소요시간 약 5시간 · 1인 예상 6~8만원)"
+}
+
+=== 규칙 ===
+- 다녀온 과거 데이트: review에 사용자 감상을 자연스럽게 정리, checklist는 []
+- 미래 계획: review는 ""(빈 문자열), checklist는 3~5개 준비물
+- 날짜를 특정 안 하면 오늘 날짜 (오늘은 ${today})
+- PART 섹션은 보통 2~4개 (식사/메인 활동/저녁 등)
+- highlight는 메인 이벤트 1~2개만 true
+- category에 따라 카드 색상이 바뀜: food(분홍), boat(파랑), cafe(보라), walk(초록)
+- transport mode에 따라 이동 박스 색 바뀜
+
+=== 예시 (한강 데이트) ===
+{
+  "id": "2026-04-26-hangang",
+  "date": "2026-04-26",
+  "weekday": "일요일",
+  "title": "우리의 한강 데이트",
+  "emoji": "🚢🌸",
+  "subtitle": "한강버스 & 빕스",
+  "route": "서울대입구 → 여의도 → 압구정 → 반포",
+  "theme": "pink",
+  "tags": [
+    { "text": "한강버스", "color": "blue" },
+    { "text": "한강라면", "color": "pink" },
+    { "text": "빕스 디너", "color": "yellow" }
+  ],
+  "sections": [
+    {
+      "colorClass": "sec-1",
+      "label": "🍜 PART 1. 한강 점심",
+      "entries": [
+        { "type": "item", "time": "12:00", "title": "🏠 서울대입구역 출발", "desc": "2호선 탑승", "category": "" },
+        { "type": "transport", "mode": "subway-mode", "label": "🚇 지하철 (2호선 → 9호선)", "duration": "약 40분" },
+        { "type": "item", "time": "12:55", "title": "🍜 한강라면 점심", "desc": "여의도선착장 1층 CU → 2층 스탠딩석", "category": "food", "tag": { "text": "오늘의 서프라이즈", "color": "pink" } }
+      ]
+    },
+    {
+      "colorClass": "sec-2",
+      "label": "🚢 PART 2. 한강버스",
+      "entries": [
+        { "type": "item", "time": "15:23", "title": "🌅 한강버스 (돌아오는 길) ⭐", "desc": "압구정 → 여의도<br>진행방향 <b>왼쪽 창가</b> 추천", "category": "boat", "highlight": true, "tag": { "text": "오늘의 하이라이트", "color": "yellow" } }
+      ]
+    }
+  ],
+  "checklist": ["빕스 예약", "교통카드", "얇은 겉옷"],
+  "review": "",
+  "footerHeart": "한강라면부터 빕스까지",
+  "footerSub": "우리만의 특별한 하루 ✨",
+  "footerSmall": "총 소요시간 약 5시간 30분 · 1인 예상 6~8만원"
+}
+
+=== 내 데이트 ===
+(여기에 데이트 설명을 자유롭게 적어주세요. 다녀온 얘기든 계획이든.)
+
+
+위 스키마대로 JSON 하나만 출력해줘.`;
+}
+
+function openPastePanel() {
+  document.getElementById('list-panel').classList.add('hidden');
+  document.getElementById('paste-panel').classList.remove('hidden');
+  document.getElementById('copy-status').textContent = '';
+  document.getElementById('paste-status').textContent = '';
+  document.getElementById('paste-input').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closePastePanel() {
+  document.getElementById('paste-panel').classList.add('hidden');
+  document.getElementById('list-panel').classList.remove('hidden');
+}
+
+async function copyTemplate() {
+  const text = buildTemplatePrompt();
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById('copy-status').textContent = '✓ 복사 완료! claude.ai 같은 데 붙여넣고 맨 아래 데이트 내용 추가하세요';
+  } catch (err) {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      document.getElementById('copy-status').textContent = '✓ 복사 완료!';
+    } catch (e) {
+      document.getElementById('copy-status').textContent = '❌ 복사 실패, 수동으로 해주세요';
+    }
+    document.body.removeChild(ta);
+  }
+}
+
+function extractJson(text) {
+  text = (text || '').trim();
+  if (!text) throw new Error('내용이 비어있어요');
+
+  // 1) Try direct parse
+  try { return JSON.parse(text); } catch (_) {}
+
+  // 2) Try fenced code block (```json ... ``` or ``` ... ```)
+  const fenced = text.match(/```(?:json|JSON)?\s*([\s\S]*?)\s*```/);
+  if (fenced) {
+    try { return JSON.parse(fenced[1].trim()); } catch (_) {}
+  }
+
+  // 3) Find outermost {...} by matching braces
+  const first = text.indexOf('{');
+  if (first >= 0) {
+    let depth = 0, end = -1;
+    let inString = false, escape = false;
+    for (let i = first; i < text.length; i++) {
+      const ch = text[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') {
+        depth--;
+        if (depth === 0) { end = i; break; }
+      }
+    }
+    if (end > first) {
+      try { return JSON.parse(text.substring(first, end + 1)); } catch (_) {}
+    }
+  }
+
+  throw new Error('JSON을 찾지 못했어요. AI가 돌려준 전체를 그대로 붙여넣어 보세요.');
+}
+
+function parseAndFill() {
+  const raw = document.getElementById('paste-input').value;
+  const status = document.getElementById('paste-status');
+  status.textContent = '';
+
+  let entry;
+  try {
+    entry = extractJson(raw);
+  } catch (err) {
+    status.style.color = '#D96B6B';
+    status.textContent = '❌ ' + err.message;
+    return;
+  }
+
+  // basic validation
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    status.style.color = '#D96B6B';
+    status.textContent = '❌ 객체 형태의 JSON이 아니에요';
+    return;
+  }
+
+  // ensure required arrays
+  entry.tags = Array.isArray(entry.tags) ? entry.tags : [];
+  entry.sections = Array.isArray(entry.sections) ? entry.sections : [];
+  entry.checklist = Array.isArray(entry.checklist) ? entry.checklist : [];
+  entry.photos = Array.isArray(entry.photos) ? entry.photos : [];
+
+  // fill defaults for missing
+  entry.id = entry.id || ('date-' + Date.now());
+  entry.date = entry.date || new Date().toISOString().slice(0, 10);
+  entry.title = entry.title || '(제목 없음)';
+  entry.theme = entry.theme || 'pink';
+  entry.emoji = entry.emoji || '💕';
+
+  // if id already exists → ask user: update or add new with new id?
+  const existingIdx = DATES.findIndex(x => x.id === entry.id);
+  if (existingIdx >= 0) {
+    const choice = confirm(`같은 ID "${entry.id}" 가 이미 있어요.\n\n확인: 기존 데이트 수정 (덮어쓰기)\n취소: 새 데이트로 추가 (ID에 접미사 붙임)`);
+    if (choice) {
+      EDITING_INDEX = existingIdx;
+      EDITING_COPY = entry;
+    } else {
+      entry.id = entry.id + '-' + Math.random().toString(36).slice(2, 5);
+      EDITING_INDEX = -1;
+      EDITING_COPY = entry;
+    }
+  } else {
+    EDITING_INDEX = -1;
+    EDITING_COPY = entry;
+  }
+
+  closePastePanel();
+  showEditor();
+  toast('분석 완료! 확인 후 저장해주세요 💕');
+}
 
 function openClaudePanel() {
   document.getElementById('list-panel').classList.add('hidden');

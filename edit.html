@@ -58,6 +58,13 @@
   .btn-primary { background: #E87A9E; color: white; box-shadow: 0 4px 12px rgba(232, 122, 158, 0.3); }
   .btn-primary:hover { background: #D96B8A; }
   .btn-primary:disabled { background: #DFC8D0; cursor: not-allowed; box-shadow: none; }
+  .btn-claude {
+    background: linear-gradient(135deg, #9670BA 0%, #E87A9E 100%);
+    color: white;
+    box-shadow: 0 4px 14px rgba(150, 112, 186, 0.35);
+  }
+  .btn-claude:hover { filter: brightness(1.05); }
+  .btn-claude:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-secondary { background: #F0E0EA; color: #8B5A7C; }
   .btn-danger { background: #FFE0E0; color: #D96B6B; }
   .btn-sm { padding: 6px 12px; font-size: 11.5px; border-radius: 10px; }
@@ -172,9 +179,47 @@
     <h1>📔 데이트 목록</h1>
     <div class="sub">수정할 데이트를 클릭하거나, 새 데이트를 추가하세요</div>
 
-    <button class="btn-primary" style="width: 100%;" onclick="newDate()">＋ 새 데이트 추가</button>
+    <button class="btn-claude" onclick="openClaudePanel()" style="width: 100%; margin-bottom: 8px;">🤖 Claude로 빠르게 추가 (자연어)</button>
+    <button class="btn-primary" style="width: 100%;" onclick="newDate()">＋ 빈 양식으로 추가</button>
 
     <div class="date-list" id="date-list"></div>
+  </div>
+
+  <!-- ============ CLAUDE PANEL ============ -->
+  <div class="panel hidden" id="claude-panel">
+    <h1>🤖 Claude에게 부탁하기</h1>
+    <div class="sub">데이트 다녀온 얘기나 계획을 자유롭게 적어주세요. Claude가 양식에 맞게 정리해서 편집 폼을 채워줘요.</div>
+
+    <div id="claude-key-wrap" class="hidden">
+      <label>Anthropic API 키 <span class="hint">한 번만 입력 (이 브라우저에만 저장)</span></label>
+      <input type="password" id="claude-key-input" placeholder="sk-ant-..." autocomplete="off">
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="btn-primary btn-sm" onclick="saveClaudeKey()">저장</button>
+        <button class="btn-secondary btn-sm" onclick="toggleClaudeHelp()">키 만드는 법 ❓</button>
+      </div>
+      <div class="guide hidden" id="claude-help" style="margin-top: 10px;">
+        <b>Anthropic API 키 만드는 법:</b><br>
+        1. <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a> 접속<br>
+        2. <b>Create Key</b> 클릭 → 이름 아무거나 → 복사<br>
+        3. 위 칸에 붙여넣기<br>
+        <br>
+        ⚠️ 무료 크레딧도 주고, 데이트 하나 생성에 약 1~2원 정도라 저렴해요.
+      </div>
+    </div>
+
+    <div id="claude-input-wrap" class="hidden">
+      <label id="claude-key-status" style="color: #5A9670;">✓ API 키 저장됨 <a href="#" onclick="clearClaudeKey(); return false;" style="color: #B8A8CC; font-weight: 500; font-size: 11px; margin-left: 6px;">[변경]</a></label>
+
+      <label style="margin-top: 14px;">데이트 설명</label>
+      <textarea id="claude-input" rows="8" placeholder="예시 1 (다녀온 후): 오늘 홍대 데이트 다녀왔어. 2시에 만나서 연남동 카페 B에서 커피 마시고 수다 떨다가, 홍대 CGV에서 영화 보고, 저녁엔 연남 파스타집 A에서 먹었어. 너무 좋았고 특히 영화가 재밌었어~&#10;&#10;예시 2 (계획): 다음주 토요일 성수 데이트 계획. 오후 1시에 성수역에서 만나서 대림창고 카페 가고, 레스피스 성수 구경하고, 저녁은 성수 와인바에서~"></textarea>
+
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <button class="btn-claude" id="btn-ask-claude" onclick="askClaude()" style="flex: 1;">✨ Claude에게 생성 요청</button>
+        <button class="btn-secondary" onclick="closeClaudePanel()">취소</button>
+      </div>
+
+      <div id="claude-status" style="margin-top: 12px; font-size: 12px; color: #8B7BA8; font-weight: 600;"></div>
+    </div>
   </div>
 
   <!-- ============ EDITOR ============ -->
@@ -715,6 +760,253 @@ async function deleteDate() {
 
 function escapeAttr(s) {
   return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// ================================
+// 🤖 CLAUDE INTEGRATION
+// ================================
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
+
+const CLAUDE_SYSTEM = `당신은 한국의 데이트 앨범 앱을 위한 도우미입니다. 사용자가 자연어(한국어)로 설명하는 데이트를 구조화된 JSON으로 변환합니다.
+
+데이트는 두 종류가 있습니다:
+- **계획 (미래)**: 타임라인 채우기, review는 빈 문자열
+- **다녀온 후 (과거)**: 실제 있었던 일로 타임라인 채우고, 사용자 감상을 review에 자연스럽게 정리
+
+반드시 create_date_entry 도구를 호출해서 출력하세요. 도구의 input_schema를 정확히 따르세요.
+
+기본 값 규칙:
+- date를 사용자가 말 안 하면: 문맥으로 추정 (오늘/내일/이번주 등). 모호하면 오늘 날짜 사용.
+- weekday: 날짜로부터 정확한 요일 계산 (월요일~일요일)
+- id: "YYYY-MM-DD-영문키워드" 형식, 소문자-하이픈 (예: "2026-05-03-seongsu")
+- emoji: 데이트 분위기에 맞는 이모지 2개 (🌸🚢 한강, 🍣🍷 데이트 디너, 🏝️🌊 바다, 🎬🍿 영화, 🎨🖼️ 전시 등)
+- theme: 분위기에 맞게 pink/blue/purple/yellow/green 중 선택 (기본 pink)
+- tags: 2~4개 정도의 핵심 키워드 (음식/장소/활동)
+- sections: 보통 2~4개 (PART 1/2/3), 제목에 이모지 포함 (예: "🍜 PART 1. 점심")
+  - colorClass: sec-1(빨강), sec-2(파랑), sec-3(노랑), sec-4(초록) 순환
+- entries: 각 섹션 안의 시간순 항목들
+  - type "item": 활동/장소. time(HH:MM), title(이모지 포함), desc, category(food/boat/cafe/walk/빈값), highlight(메인 이벤트만 true), tag(선택)
+  - type "transport": 이동. mode(subway-mode/boat-mode/walk-mode/car-mode), label("🚇 지하철 2호선" 등), duration("약 30분")
+- checklist: 계획이면 3~5개 준비물, 다녀온 후면 빈 배열 []
+- review: 사용자가 감상을 말했다면 그 톤 살려서 자연스럽게 정리. 말 안 했으면 "".
+- footerHeart: 데이트를 한 줄로 요약 (예: "한강라면부터 빕스까지")
+- footerSub: 시적인 부제 (예: "우리만의 특별한 하루 ✨")
+- footerSmall: 총 소요시간 · 1인 예상 비용 추정 (예: "총 소요시간 약 5시간 · 1인 예상 6~8만원")
+
+출력은 오직 create_date_entry 도구 호출로만. 다른 텍스트 쓰지 마세요.`;
+
+const CLAUDE_EXAMPLE = `예시 참고용 (이전에 생성된 한강 데이트):
+{
+  "id": "2026-04-26-hangang",
+  "date": "2026-04-26",
+  "weekday": "일요일",
+  "title": "우리의 한강 데이트",
+  "emoji": "🚢🌸",
+  "subtitle": "한강버스 & 빕스",
+  "route": "서울대입구 → 여의도 → 압구정 → 반포",
+  "theme": "pink",
+  "tags": [{"text":"한강버스","color":"blue"},{"text":"한강라면","color":"pink"},{"text":"빕스 디너","color":"yellow"}],
+  "sections": [
+    {"colorClass":"sec-1","label":"🍜 PART 1. 한강 점심","entries":[
+      {"type":"item","time":"12:00","title":"🏠 서울대입구역 출발","desc":"2호선 탑승","category":""},
+      {"type":"transport","mode":"subway-mode","label":"🚇 지하철 (2호선 → 9호선)","duration":"약 40분"},
+      {"type":"item","time":"12:55","title":"🍜 한강라면 점심","desc":"여의도선착장 1층 CU → 2층 스탠딩석","category":"food","tag":{"text":"오늘의 서프라이즈","color":"pink"}}
+    ]},
+    {"colorClass":"sec-2","label":"🚢 PART 2. 한강버스","entries":[
+      {"type":"item","time":"14:13","title":"🚢 한강버스 탑승 (가는 길)","desc":"<b>여의도 → 압구정</b>","category":"boat","tag":{"text":"3,000원","color":"blue"}},
+      {"type":"item","time":"15:23","title":"🌅 한강버스 (돌아오는 길) ⭐","desc":"압구정 → 여의도, 반포대교뷰","category":"boat","highlight":true,"tag":{"text":"오늘의 하이라이트","color":"yellow"}}
+    ]}
+  ],
+  "checklist": ["빕스 예약","교통카드","얇은 겉옷"],
+  "review": "",
+  "footerHeart": "한강라면부터 빕스까지",
+  "footerSub": "우리만의 특별한 하루 ✨",
+  "footerSmall": "총 소요시간 약 5시간 30분 · 1인 예상 6~8만원"
+}`;
+
+const CLAUDE_TOOL = {
+  name: 'create_date_entry',
+  description: '데이트 앨범에 새 데이트 항목을 만듭니다. 사용자 설명을 구조화된 데이트 JSON으로 변환하세요.',
+  input_schema: {
+    type: 'object',
+    required: ['id', 'date', 'title', 'theme'],
+    properties: {
+      id: { type: 'string', description: 'YYYY-MM-DD-slug 형식, 소문자-하이픈 (예: 2026-04-26-hangang)' },
+      date: { type: 'string', description: 'YYYY-MM-DD' },
+      weekday: { type: 'string', description: '한국어 요일 (월요일~일요일)' },
+      title: { type: 'string', description: '데이트 제목 (예: 우리의 한강 데이트)' },
+      emoji: { type: 'string', description: '데이트를 대표하는 이모지 2개 (예: 🚢🌸)' },
+      subtitle: { type: 'string', description: '부제 (선택, 예: 한강버스 & 빕스)' },
+      route: { type: 'string', description: '경로 (예: 서울대입구 → 여의도 → 반포)' },
+      theme: { type: 'string', enum: ['pink', 'blue', 'purple', 'yellow', 'green'] },
+      tags: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['text', 'color'],
+          properties: {
+            text: { type: 'string' },
+            color: { type: 'string', enum: ['pink', 'blue', 'purple', 'yellow', 'green'] }
+          }
+        }
+      },
+      sections: {
+        type: 'array',
+        description: '타임라인 섹션들 (PART 1, 2, 3...)',
+        items: {
+          type: 'object',
+          required: ['colorClass', 'label', 'entries'],
+          properties: {
+            colorClass: { type: 'string', enum: ['sec-1', 'sec-2', 'sec-3', 'sec-4'] },
+            label: { type: 'string', description: '섹션 제목 (이모지 포함, 예: 🍜 PART 1. 한강 점심)' },
+            entries: {
+              type: 'array',
+              description: '섹션 안의 시간순 항목들. item 또는 transport 타입.',
+              items: {
+                type: 'object',
+                required: ['type'],
+                properties: {
+                  type: { type: 'string', enum: ['item', 'transport'] },
+                  time: { type: 'string', description: '(item 전용) HH:MM' },
+                  title: { type: 'string', description: '(item 전용) 제목, 이모지 포함' },
+                  desc: { type: 'string', description: '(item 전용) 설명. HTML <br> <b> 사용 가능' },
+                  category: { type: 'string', enum: ['', 'food', 'boat', 'cafe', 'walk'], description: '(item 전용)' },
+                  highlight: { type: 'boolean', description: '(item 전용) 오늘의 메인 이벤트만 true' },
+                  tag: {
+                    type: 'object',
+                    description: '(item 전용, 선택) 카드에 붙는 작은 태그',
+                    properties: {
+                      text: { type: 'string' },
+                      color: { type: 'string', enum: ['pink', 'blue', 'purple', 'yellow', 'green'] }
+                    }
+                  },
+                  mode: { type: 'string', enum: ['subway-mode', 'boat-mode', 'walk-mode', 'car-mode'], description: '(transport 전용)' },
+                  label: { type: 'string', description: '(transport 전용) 이동 설명 (예: 🚇 지하철 2호선)' },
+                  duration: { type: 'string', description: '(transport 전용, 선택) 예: 약 30분' }
+                }
+              }
+            }
+          }
+        }
+      },
+      checklist: { type: 'array', items: { type: 'string' }, description: '준비물 체크리스트. 과거 데이트면 빈 배열.' },
+      review: { type: 'string', description: '후기. 과거 데이트면 사용자 감상 정리, 미래면 "".' },
+      footerHeart: { type: 'string', description: '한 줄 요약' },
+      footerSub: { type: 'string', description: '시적인 부제' },
+      footerSmall: { type: 'string', description: '총 소요시간/비용 추정' }
+    }
+  }
+};
+
+function openClaudePanel() {
+  document.getElementById('list-panel').classList.add('hidden');
+  document.getElementById('claude-panel').classList.remove('hidden');
+  const key = localStorage.getItem('claude_key');
+  if (key) {
+    document.getElementById('claude-key-wrap').classList.add('hidden');
+    document.getElementById('claude-input-wrap').classList.remove('hidden');
+  } else {
+    document.getElementById('claude-key-wrap').classList.remove('hidden');
+    document.getElementById('claude-input-wrap').classList.add('hidden');
+  }
+  document.getElementById('claude-status').textContent = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeClaudePanel() {
+  document.getElementById('claude-panel').classList.add('hidden');
+  document.getElementById('list-panel').classList.remove('hidden');
+}
+
+function toggleClaudeHelp() {
+  document.getElementById('claude-help').classList.toggle('hidden');
+}
+
+function saveClaudeKey() {
+  const key = document.getElementById('claude-key-input').value.trim();
+  if (!key.startsWith('sk-ant-')) return toast('sk-ant- 로 시작하는 키를 입력해주세요', true);
+  localStorage.setItem('claude_key', key);
+  toast('키 저장 완료 💕');
+  openClaudePanel();
+}
+
+function clearClaudeKey() {
+  if (!confirm('Claude API 키를 삭제할까요?')) return;
+  localStorage.removeItem('claude_key');
+  openClaudePanel();
+}
+
+async function askClaude() {
+  const input = document.getElementById('claude-input').value.trim();
+  if (!input) return toast('데이트 설명을 적어주세요', true);
+
+  const key = localStorage.getItem('claude_key');
+  if (!key) return toast('먼저 API 키를 저장해주세요', true);
+
+  const btn = document.getElementById('btn-ask-claude');
+  const status = document.getElementById('claude-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Claude가 생각 중…';
+  status.textContent = '';
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 4096,
+        system: [
+          { type: 'text', text: CLAUDE_SYSTEM },
+          { type: 'text', text: CLAUDE_EXAMPLE, cache_control: { type: 'ephemeral' } }
+        ],
+        tools: [CLAUDE_TOOL],
+        tool_choice: { type: 'tool', name: 'create_date_entry' },
+        messages: [
+          { role: 'user', content: `오늘 날짜: ${today}\n\n데이트 설명:\n${input}` }
+        ],
+      }),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error(`API ${resp.status}: ${errText.slice(0, 200)}`);
+    }
+    const data = await resp.json();
+    const toolUse = (data.content || []).find(c => c.type === 'tool_use');
+    if (!toolUse) throw new Error('Claude 응답에서 도구 호출을 찾지 못함');
+
+    const entry = toolUse.input;
+    // ensure required arrays exist
+    entry.tags = entry.tags || [];
+    entry.sections = entry.sections || [];
+    entry.checklist = entry.checklist || [];
+    entry.photos = entry.photos || [];
+
+    // check for id collision
+    if (DATES.some(x => x.id === entry.id)) {
+      entry.id = entry.id + '-' + Math.random().toString(36).slice(2, 5);
+    }
+
+    EDITING_INDEX = -1;
+    EDITING_COPY = entry;
+    closeClaudePanel();
+    showEditor();
+    toast('생성 완료! 확인 후 저장해주세요 💕');
+  } catch (err) {
+    status.textContent = '❌ ' + err.message;
+    toast('실패: ' + err.message.slice(0, 80), true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Claude에게 생성 요청';
+  }
 }
 
 initApp();

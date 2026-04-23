@@ -1,3 +1,4 @@
-_template.html
 .git
 .gitignore
+.vercelignore
+node_modules/

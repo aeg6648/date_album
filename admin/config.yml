@@ -1,0 +1,151 @@
+backend:
+  name: github
+  repo: aeg6648/date_album
+  branch: main
+  base_url: https://date-album.vercel.app
+  auth_endpoint: /api/auth
+
+# 이미지 업로드 경로
+media_folder: "photos"
+public_folder: "/photos"
+
+locale: "en"
+
+# 커밋 메시지 템플릿
+commit_messages:
+  create: '데이트 추가: {{slug}}'
+  update: '데이트 수정: {{slug}}'
+  delete: '데이트 삭제: {{slug}}'
+  uploadMedia: '사진 업로드: {{path}}'
+  deleteMedia: '사진 삭제: {{path}}'
+
+collections:
+  - name: "album"
+    label: "📔 데이트 앨범"
+    files:
+      - name: "dates"
+        file: "data/dates.json"
+        label: "모든 데이트"
+        description: "여기서 데이트를 추가하거나 수정할 수 있어요 💕"
+        format: "json"
+        extension: "json"
+        fields:
+          - label: "데이트 목록"
+            name: "dates"
+            widget: "list"
+            label_singular: "데이트"
+            summary: "{{fields.date}} · {{fields.title}}"
+            fields:
+              - { label: "ID (고유값)", name: "id", widget: "string", hint: "예: 2026-04-26-hangang (날짜-키워드 형식, 띄어쓰기 없이)" }
+              - { label: "날짜", name: "date", widget: "datetime", date_format: "YYYY-MM-DD", time_format: false, format: "YYYY-MM-DD", picker_utc: false }
+              - { label: "요일", name: "weekday", widget: "string", hint: "예: 일요일" }
+              - { label: "제목", name: "title", widget: "string", hint: "예: 우리의 한강 데이트" }
+              - { label: "이모지 (제목 옆 장식)", name: "emoji", widget: "string", default: "💕", required: false }
+              - { label: "부제목 (키워드)", name: "subtitle", widget: "string", required: false, hint: "예: 한강버스 & 빕스" }
+              - { label: "경로", name: "route", widget: "string", required: false, hint: "예: 서울대입구 → 여의도 → 반포" }
+              - label: "테마 컬러"
+                name: "theme"
+                widget: "select"
+                options: ["pink", "blue", "purple", "yellow", "green"]
+                default: "pink"
+              - label: "태그 (카드에 표시)"
+                name: "tags"
+                widget: "list"
+                required: false
+                summary: "{{fields.text}}"
+                fields:
+                  - { label: "텍스트", name: "text", widget: "string" }
+                  - label: "색상"
+                    name: "color"
+                    widget: "select"
+                    options: ["pink", "blue", "purple", "yellow", "green"]
+                    default: "pink"
+              - label: "섹션 (타임라인)"
+                name: "sections"
+                widget: "list"
+                required: false
+                summary: "{{fields.label}}"
+                fields:
+                  - { label: "섹션 제목", name: "label", widget: "string", hint: "예: 🍜 PART 1. 한강 점심" }
+                  - label: "섹션 색상"
+                    name: "colorClass"
+                    widget: "select"
+                    options:
+                      - { label: "빨강 (sec-1)", value: "sec-1" }
+                      - { label: "파랑 (sec-2)", value: "sec-2" }
+                      - { label: "노랑 (sec-3)", value: "sec-3" }
+                      - { label: "초록 (sec-4)", value: "sec-4" }
+                    default: "sec-1"
+                  - label: "항목 (시간순)"
+                    name: "entries"
+                    widget: "list"
+                    summary: "{{fields.type}} · {{fields.title}}{{fields.label}}"
+                    types:
+                      - label: "📍 장소/활동"
+                        name: "item"
+                        widget: "object"
+                        summary: "{{fields.time}} {{fields.title}}"
+                        fields:
+                          - { label: "시간", name: "time", widget: "string", hint: "예: 12:30" }
+                          - { label: "제목", name: "title", widget: "string" }
+                          - { label: "설명", name: "desc", widget: "text", required: false, hint: "HTML 가능 (<br>, <b> 등)" }
+                          - label: "카테고리"
+                            name: "category"
+                            widget: "select"
+                            required: false
+                            default: ""
+                            options:
+                              - { label: "기본", value: "" }
+                              - { label: "🍽️ 음식", value: "food" }
+                              - { label: "🚢 배", value: "boat" }
+                              - { label: "☕ 카페", value: "cafe" }
+                              - { label: "🚶 산책", value: "walk" }
+                          - { label: "⭐ 하이라이트?", name: "highlight", widget: "boolean", default: false, required: false }
+                          - label: "태그 (선택)"
+                            name: "tag"
+                            widget: "object"
+                            required: false
+                            collapsed: true
+                            fields:
+                              - { label: "텍스트", name: "text", widget: "string" }
+                              - label: "색상"
+                                name: "color"
+                                widget: "select"
+                                options: ["pink", "blue", "purple", "yellow", "green"]
+                                default: "pink"
+                      - label: "🚇 이동"
+                        name: "transport"
+                        widget: "object"
+                        summary: "🚇 {{fields.label}}"
+                        fields:
+                          - label: "이동수단"
+                            name: "mode"
+                            widget: "select"
+                            options:
+                              - { label: "🚇 지하철/버스", value: "subway-mode" }
+                              - { label: "🚢 배", value: "boat-mode" }
+                              - { label: "🚶 도보", value: "walk-mode" }
+                              - { label: "🚗 차", value: "car-mode" }
+                            default: "subway-mode"
+                          - { label: "설명", name: "label", widget: "string", hint: "예: 🚇 지하철 2호선" }
+                          - { label: "소요시간", name: "duration", widget: "string", required: false, hint: "예: 약 30분" }
+              - label: "📌 체크리스트 (꼭 챙길 것)"
+                name: "checklist"
+                widget: "list"
+                field: { label: "항목", name: "item", widget: "string" }
+                required: false
+                default: []
+              - label: "💌 후기"
+                name: "review"
+                widget: "text"
+                required: false
+                hint: "데이트 다녀온 후 감상을 자유롭게 써주세요"
+              - label: "📷 사진"
+                name: "photos"
+                widget: "list"
+                required: false
+                default: []
+                field: { label: "사진", name: "image", widget: "image" }
+              - { label: "푸터: 한 줄 소감", name: "footerHeart", widget: "string", required: false }
+              - { label: "푸터: 부제", name: "footerSub", widget: "string", required: false }
+              - { label: "푸터: 소요시간/비용 등 (작은 글씨)", name: "footerSmall", widget: "string", required: false }

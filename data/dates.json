@@ -1,0 +1,62 @@
+[
+  {
+    "id": "2026-04-26-hangang",
+    "date": "2026-04-26",
+    "weekday": "일요일",
+    "title": "우리의 한강 데이트",
+    "emoji": "🚢🌸",
+    "subtitle": "한강버스 & 빕스",
+    "route": "서울대입구 → 여의도 → 압구정 → 반포",
+    "theme": "pink",
+    "tags": [
+      { "text": "한강버스", "color": "blue" },
+      { "text": "한강라면", "color": "pink" },
+      { "text": "빕스 디너", "color": "yellow" }
+    ],
+    "sections": [
+      {
+        "colorClass": "sec-1",
+        "label": "🍜 PART 1. 한강 점심",
+        "entries": [
+          { "type": "item", "time": "12:00", "title": "🏠 서울대입구역 출발", "desc": "2호선 탑승", "category": "" },
+          { "type": "transport", "mode": "subway-mode", "label": "🚇 지하철 (2호선 → 사당 → 9호선 급행)", "duration": "약 40분" },
+          { "type": "item", "time": "12:55", "title": "🍜 한강라면 점심", "desc": "여의도선착장 1층 CU → 2층 스탠딩석<br>한강 보면서 라면 먹기", "category": "food", "tag": { "text": "오늘의 서프라이즈", "color": "pink" } },
+          { "type": "transport", "mode": "walk-mode", "label": "🚶 한강공원 가볍게 산책", "duration": "20분" }
+        ]
+      },
+      {
+        "colorClass": "sec-2",
+        "label": "🚢 PART 2. 한강버스 왕복",
+        "entries": [
+          { "type": "item", "time": "14:13", "title": "🚢 한강버스 탑승 (가는 길)", "desc": "<b>여의도 → 압구정</b> · 창가 자리 선점!", "category": "boat", "tag": { "text": "3,000원 · 교통카드 OK", "color": "blue" } },
+          { "type": "transport", "mode": "boat-mode", "label": "🚢 한강버스 운항 중 · 반포대교 통과", "duration": "29분" },
+          { "type": "item", "time": "14:42", "title": "💕 압구정선착장 도착", "desc": "한강뷰 벤치에서 쉬기 · 약 40분 자유시간", "category": "walk" },
+          { "type": "transport", "mode": "walk-mode", "label": "🚶 선착장 주변 산책", "duration": "40분" },
+          { "type": "item", "time": "15:23", "title": "🌅 한강버스 탑승 (돌아오는 길) ⭐", "desc": "<b>압구정 → 여의도</b> · 같은 한강버스로 복귀!<br>진행방향 <b>왼쪽 창가</b> 추천 (반포대교·한강뷰)", "category": "boat", "highlight": true, "tag": { "text": "오늘의 하이라이트", "color": "yellow" } },
+          { "type": "transport", "mode": "boat-mode", "label": "🚢 한강버스 운항 중 · 오후 햇살뷰", "duration": "29분" },
+          { "type": "item", "time": "15:55", "title": "☕ 스타벅스 여의도한강공원점", "desc": "여의도선착장 3층 · 파노라마 통창뷰<br>배에서 내려서 같은 건물 3층으로!", "category": "cafe" }
+        ]
+      },
+      {
+        "colorClass": "sec-3",
+        "label": "🥩 PART 3. 반포 디너",
+        "entries": [
+          { "type": "item", "time": "16:50", "title": "🚇 반포로 이동", "desc": "여의나루역 5호선 → 9호선 급행 환승", "category": "" },
+          { "type": "transport", "mode": "subway-mode", "label": "🚇 지하철 (5호선 → 9호선 급행)", "duration": "약 30분" },
+          { "type": "item", "time": "17:30", "title": "🥩 빕스 프리미어 반포점 ⭐", "desc": "저녁 피크 전 여유로운 디너<br>신반포로 257 · 반포역 3번 출구 도보 5분", "category": "food", "highlight": true, "tag": { "text": "VIPS 앱 얼리버드 25%↓", "color": "pink" } }
+        ]
+      }
+    ],
+    "checklist": [
+      "빕스 반포점 17:30 예약 (VIPS 앱)",
+      "교통카드 or 기후동행카드 준비",
+      "14:00까지 여의도선착장 도착 (창가 선점)",
+      "얇은 겉옷 하나 (한강 바람 쌀쌀)"
+    ],
+    "footerHeart": "한강라면부터 빕스까지",
+    "footerSub": "우리만의 특별한 하루 ✨",
+    "footerSmall": "총 소요시간 약 5시간 30분 · 1인 예상 비용 6~8만원",
+    "review": "",
+    "photos": []
+  }
+]

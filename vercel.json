@@ -6,9 +6,17 @@
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
+    },
+    {
+      "source": "/data/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
     }
+  ],
+  "redirects": [
+    { "source": "/dates/2026-04-26_hangang", "destination": "/date?id=2026-04-26-hangang", "permanent": false }
   ]
 }
